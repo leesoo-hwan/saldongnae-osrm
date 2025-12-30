@@ -25,3 +25,11 @@ primary_region = "nrt"
 [mounts]
   source = "osrm_data"
   destination = "/data"
+
+[deploy]
+  strategy = "rolling"
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  min_machines_running = 0
