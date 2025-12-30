@@ -1,17 +1,15 @@
-# 1) tools stage: curl + ca-certificates 준비 (apk는 안정적)
-FROM alpine:3.20 AS tools
-RUN apk add --no-cache curl ca-certificates
-
-# 2) runtime stage: OSRM
 FROM osrm/osrm-backend:latest
 
 WORKDIR /data
 
-# curl 실행파일 + 인증서만 복사 (apt-get 필요 없음)
-COPY --from=tools /usr/bin/curl /usr/bin/curl
-COPY --from=tools /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+# curl 설치 (이게 지금 빠져 있었음)
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
-# (중요) PBF를 이미지에 ADD 하지 말 것! -> 런타임에 /data 볼륨에 다운로드
+ENV REGION_NAME=south-korea
+ENV PBF_URL=https://download.geofabrik.de/asia/south-korea-latest.osm.pbf
+ENV PROFILE=/opt/car.lua
+ENV ALGO=mld
+
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
