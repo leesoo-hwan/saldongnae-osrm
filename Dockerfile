@@ -1,16 +1,17 @@
+# 1) tools stage: curl + ca-certificates 준비 (apk는 안정적)
+FROM alpine:3.20 AS tools
+RUN apk add --no-cache curl ca-certificates
+
+# 2) runtime stage: OSRM
 FROM osrm/osrm-backend:latest
 
 WORKDIR /data
 
-# Fly.toml에서 쓰는 REGION_NAME/PBF_URL과 맞춰줘야 함
-ENV REGION_NAME=south-korea
-ENV PBF_URL=https://download.geofabrik.de/asia/south-korea-latest.osm.pbf
-ENV PROFILE=/opt/car.lua
-ENV ALGO=mld
+# curl 실행파일 + 인증서만 복사 (apt-get 필요 없음)
+COPY --from=tools /usr/bin/curl /usr/bin/curl
+COPY --from=tools /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-# Docker 빌드 기능: URL을 그냥 가져올 수 있음 (curl/wget 불필요)
-ADD ${PBF_URL} /data/${REGION_NAME}.osm.pbf
-
+# (중요) PBF를 이미지에 ADD 하지 말 것! -> 런타임에 /data 볼륨에 다운로드
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
