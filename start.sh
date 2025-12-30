@@ -1,5 +1,5 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 REGION_NAME="${REGION_NAME:-south-korea}"
 PBF_URL="${PBF_URL:-https://download.geofabrik.de/asia/south-korea-latest.osm.pbf}"
@@ -18,36 +18,18 @@ echo "PROFILE=${PROFILE}"
 echo "ALGO=${ALGO}"
 echo "MAX_TABLE_SIZE=${MAX_TABLE_SIZE}"
 
-download_pbf() {
-  echo "Downloading PBF to: ${PBF_PATH}"
-  if command -v curl >/dev/null 2>&1; then
-    curl -L --fail --retry 5 --retry-delay 3 -o "${PBF_PATH}" "${PBF_URL}"
-  elif command -v wget >/dev/null 2>&1; then
-    wget -O "${PBF_PATH}" "${PBF_URL}"
-  else
-    echo "ERROR: No downloader available (curl/wget)."
-    exit 1
-  fi
-}
-
 if [ ! -f "${OSRM_BASENAME}" ]; then
   echo "No OSRM data found. Start preprocessing..."
 
+  # ✅ Dockerfile에서 이미 PBF를 넣었으면 여기서는 다운로드 안 함
   if [ ! -f "${PBF_PATH}" ]; then
-    download_pbf
-  else
-    echo "PBF already exists: ${PBF_PATH}"
+    echo "PBF not found at ${PBF_PATH}. (No downloader in image) -> build must include PBF."
+    exit 1
   fi
 
-  echo "Running osrm-extract..."
   osrm-extract -p "${PROFILE}" "${PBF_PATH}"
-
-  echo "Running osrm-partition..."
   osrm-partition "${OSRM_BASENAME}"
-
-  echo "Running osrm-customize..."
   osrm-customize "${OSRM_BASENAME}"
 fi
 
-echo "Starting osrm-routed..."
 exec osrm-routed --algorithm "${ALGO}" "${OSRM_BASENAME}" --max-table-size "${MAX_TABLE_SIZE}"
